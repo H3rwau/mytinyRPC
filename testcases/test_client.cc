@@ -9,10 +9,16 @@
 #include <iostream>
 #include <memory>
 #include <unistd.h>
+#include <thread>
 #include "tinyRPC/common/log.h"
 #include "tinyRPC/common/config.h"
 #include "tinyRPC/net/tcp/tcp_client.h"
 #include "tinyRPC/net/tcp/net_addr.h"
+#include "tinyRPC/net/coder/string_coder.h"
+#include "tinyRPC/net/coder/abstract_protocol.h"
+#include "tinyRPC/net/coder/tinypb_coder.h"
+#include "tinyRPC/net/coder/tinypb_protocol.h"
+
 void test_connect()
 {
     // 调用 conenct 连接 server
@@ -53,8 +59,27 @@ void test_tcp_client()
 {
     tinyRPC::IPV4NetAddr::s_ptr addr = std::make_shared<tinyRPC::IPV4NetAddr>("127.0.0.1", 12345);
     tinyRPC::TcpClient client(addr);
-    client.connect([addr]()
-                   { DEBUGLOG("conenct to [%s] success", addr->toString().c_str()); });
+    // connect成功了的话会监听可写事件，
+    // 在tcp的connection里的onwrite会做如下操作
+    //  1. 将 message encode 得到字节流
+    // 2. 将字节流入到 buffer 里面，然后全部发送
+    client.connect([addr, &client]()
+                   {
+        DEBUGLOG("conenct to [%s] success", addr->toString().c_str());
+        std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::make_shared<tinyRPC::TinyPBProtocol>();
+        message->m_req_id = "123456";
+        message->m_pb_data = "test client pb data";
+        //writeMessage中设置了可写事件监听
+        client.writeMessage(message, [](tinyRPC::AbstractProtocol::s_ptr msg_ptr) {
+            DEBUGLOG("send message success");
+        });
+
+        client.readMessage("123456", [](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
+                           {
+        std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::dynamic_pointer_cast<tinyRPC::TinyPBProtocol>(msg_ptr);
+            DEBUGLOG("req_id[%s], get response %s", message->m_req_id.c_str(), message->m_pb_data.c_str()); });
+        
+                             });
 }
 
 int main()

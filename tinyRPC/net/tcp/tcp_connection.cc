@@ -3,25 +3,41 @@
 #include "tinyRPC/net/fd_event_group.h"
 #include "tinyRPC/net/tcp/tcp_connection.h"
 #include "tinyRPC/net/eventloop.h"
+#include "tinyRPC/net/coder/string_coder.h"
+#include "tinyRPC/net/coder/tinypb_coder.h"
 
 namespace tinyRPC
 {
-    TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size, NetAddr::s_ptr peer_addr)
-        : m_event_loop(event_loop), m_peer_addr(peer_addr), m_state(NotConnected), m_fd(fd)
+    TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size, NetAddr::s_ptr peer_addr, TcpConnectionType type /* = TcpConnectionByServer*/)
+        : m_event_loop(event_loop), m_peer_addr(peer_addr), m_state(NotConnected), m_fd(fd), m_connection_type(type)
     {
         m_in_buffer = std::make_shared<TcpBuffer>(buffer_size);
         m_out_buffer = std::make_shared<TcpBuffer>(buffer_size);
 
         m_fd_event = FdEventGroup::GetFdEventGroup()->getFdEvent(fd);
+
         m_fd_event->setNonBlock();
-        m_fd_event->listen(FdEvent::IN_EVENT, std::bind(&TcpConnection::onRead, this));
-        m_event_loop->addEpollEvent(m_fd_event);
+
+        
+        m_coder = new TinyPBCoder();
+        // 客户端不用在TcpConnection建立的时候就监听读
+        if (m_connection_type == TcpConnectionByServer)
+        {
+            listenRead();
+        }
+
         DEBUGLOG("TcpConnection listen fd [%d] IN_EVENT", m_fd);
     }
     TcpConnection::~TcpConnection()
     {
         DEBUGLOG("~TcpConnection");
+        if (m_coder)
+        {
+            delete m_coder;
+            m_coder = nullptr;
+        }
     }
+
     void TcpConnection::onRead()
     {
         // 1. 从 socket 缓冲区，调用 系统的 read 函数读取字节 in_buffer 里面
@@ -82,22 +98,45 @@ namespace tinyRPC
     }
     void TcpConnection::excute()
     {
-        // 将 RPC 请求执行业务逻辑，获取 RPC 响应, 再把 RPC 响应发送回去
-        std::vector<char> tmp;
-        int size = m_in_buffer->readAble();
-        tmp.resize(size);
-        m_in_buffer->readFromBuffer(tmp, size);
-        std::string msg;
-        for (size_t i = 0; i < tmp.size(); ++i)
+        if (m_connection_type == TcpConnectionByServer)
         {
-            msg += tmp[i];
-        }
-        INFOLOG("success get request[%s] from client[%s]", msg.c_str(), m_peer_addr->toString().c_str());
-        DEBUGLOG("execute , msg = %s, msg.length() = %d", msg.c_str(), msg.length());
-        m_out_buffer->writeToBuffer(msg.c_str(), msg.length());
+            // 将 RPC 请求执行业务逻辑，获取 RPC 响应, 再把 RPC 响应发送回去
+            std::vector<AbstractProtocol::s_ptr> result;
+            std::vector<AbstractProtocol::s_ptr> reply_msg;
 
-        m_fd_event->listen(FdEvent::OUT_EVENT, std::bind(&TcpConnection::onWrite, this));
-        m_event_loop->addEpollEvent(m_fd_event);
+            m_coder->decode(result, m_in_buffer);
+            for (size_t i = 0; i < result.size();++i){
+                // 1. 针对每一个请求，调用 rpc 方法，获取响应 message
+                // 2. 将响应 message 放入到发送缓冲区，监听可写事件回包
+                INFOLOG("success get request[%s] from client[%s]", result[i]->m_req_id.c_str(), m_peer_addr->toString().c_str());
+
+                std::shared_ptr<TinyPBProtocol> message = std::make_shared<TinyPBProtocol>();
+
+                message->m_pb_data = "hello. this is tinyrpc test data from server";
+                message->m_req_id = result[i]->m_req_id;
+                reply_msg.emplace_back(message);
+            }
+
+            m_coder->encode(reply_msg, m_out_buffer);
+            listenWrite();
+        }
+        else
+        {
+            // 客户端的逻辑
+            // 从buffer里decode得到message对象，执行其回调
+            std::vector<AbstractProtocol::s_ptr> results;
+            m_coder->decode(results, m_in_buffer);
+
+            for (size_t i = 0; i < results.size(); ++i)
+            {
+                std::string req_id = results[i]->m_req_id;
+                auto it = m_read_dones.find(req_id);
+                if (it != m_read_dones.end())
+                {
+                    it->second(results[i]);
+                }
+            }
+        }
     }
     void TcpConnection::onWrite()
     {
@@ -108,6 +147,20 @@ namespace tinyRPC
             ERRORLOG("onWrite error, client has already disconneced, addr[%s], clientfd[%d]", m_peer_addr->toString().c_str(), m_fd);
             return;
         }
+        if (m_connection_type == TcpConnectionByClient)
+        {
+            //  1. 将 message encode 得到字节流
+            // 2. 将字节流入到 buffer 里面，然后全部发送
+            std::vector<AbstractProtocol::s_ptr> messages;
+
+            for (size_t i = 0; i < m_write_dones.size(); ++i)
+            {
+                messages.push_back(m_write_dones[i].first);
+            }
+
+            m_coder->encode(messages, m_out_buffer);
+        }
+
         bool is_write_all = false;
         while (true)
         {
@@ -140,6 +193,14 @@ namespace tinyRPC
         {
             m_fd_event->cancel(FdEvent::OUT_EVENT);
             m_event_loop->addEpollEvent(m_fd_event);
+        }
+        if (m_connection_type == TcpConnectionByClient)
+        {
+            for (size_t i = 0; i < m_write_dones.size(); ++i)
+            {
+                m_write_dones[i].second(m_write_dones[i].first);
+            }
+            m_write_dones.clear();
         }
     }
     void TcpConnection::setState(const TcpState state)
@@ -178,5 +239,28 @@ namespace tinyRPC
     void TcpConnection::setConnectionType(TcpConnectionType type)
     {
         m_connection_type = type;
+    }
+    void TcpConnection::listenWrite()
+    {
+
+        m_fd_event->listen(FdEvent::OUT_EVENT, std::bind(&TcpConnection::onWrite, this));
+        m_event_loop->addEpollEvent(m_fd_event);
+    }
+
+    void TcpConnection::listenRead()
+    {
+
+        m_fd_event->listen(FdEvent::IN_EVENT, std::bind(&TcpConnection::onRead, this));
+        m_event_loop->addEpollEvent(m_fd_event);
+    }
+
+    void TcpConnection::pushSendMessage(AbstractProtocol::s_ptr message, std::function<void(AbstractProtocol::s_ptr)> done)
+    {
+        m_write_dones.push_back(std::make_pair(message, done));
+    }
+
+    void TcpConnection::pushReadMessage(const std::string &req_id, std::function<void(AbstractProtocol::s_ptr)> done)
+    {
+        m_read_dones.insert(std::make_pair(req_id, done));
     }
 } // tinyRPC

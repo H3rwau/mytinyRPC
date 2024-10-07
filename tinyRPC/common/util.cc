@@ -1,3 +1,5 @@
+#include <string.h>
+#include <arpa/inet.h>
 #include "tinyRPC/common/util.h"
 
 namespace tinyRPC
@@ -27,5 +29,10 @@ namespace tinyRPC
         timeval tval;
         gettimeofday(&tval, nullptr);
         return tval.tv_sec * 1000 + tval.tv_usec / 1000;
+    }
+    int32_t getInt32FromNetByte(const char *buf){
+        int32_t re;
+        memcpy(&re, buf, sizeof(re));
+        return ntohl(re);
     }
 }

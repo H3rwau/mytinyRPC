@@ -4,10 +4,11 @@
 #include "tinyRPC/net/tcp/net_addr.h"
 #include "tinyRPC/net/eventloop.h"
 #include "tinyRPC/net/tcp/tcp_connection.h"
-#include "tinyRPC/net/abstract_protocol.h"
+#include "tinyRPC/net/coder/abstract_protocol.h"
 
-namespace  tinyRPC{
-    class TcpClient 
+namespace tinyRPC
+{
+    class TcpClient
     {
     public:
         TcpClient(NetAddr::s_ptr peer_addr);
@@ -21,7 +22,7 @@ namespace  tinyRPC{
         void writeMessage(AbstractProtocol::s_ptr message, std::function<void(AbstractProtocol::s_ptr)> done);
         // 异步的读取 message
         // 如果读取 message 成功，会调用 done 函数， 函数的入参就是 message 对象
-        void readMessage(AbstractProtocol::s_ptr message, std::function<void(AbstractProtocol::s_ptr)> done);
+        void readMessage(const std::string &req_id, std::function<void(AbstractProtocol::s_ptr)> done);
 
     private:
         NetAddr::s_ptr m_peer_addr;
@@ -30,6 +31,6 @@ namespace  tinyRPC{
         FdEvent *m_fd_event{NULL};
         TcpConnection::s_ptr m_connection;
     };
-}//tinyRPC
+} // tinyRPC
 
 #endif // __TCP_CLIENT__
