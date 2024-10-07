@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include "tinyRPC/common/log.h"
 #include "tinyRPC/common/config.h"
+#include "tinyRPC/net/tcp/tcp_client.h"
+#include "tinyRPC/net/tcp/net_addr.h"
 void test_connect()
 {
     // 调用 conenct 连接 server
@@ -46,10 +48,19 @@ void test_connect()
     rt = read(fd, buf, 100);
     DEBUGLOG("success read %d bytes, [%s]", rt, std::string(buf).c_str());
 }
+
+void test_tcp_client()
+{
+    tinyRPC::IPV4NetAddr::s_ptr addr = std::make_shared<tinyRPC::IPV4NetAddr>("127.0.0.1", 12345);
+    tinyRPC::TcpClient client(addr);
+    client.connect([addr]()
+                   { DEBUGLOG("conenct to [%s] success", addr->toString().c_str()); });
+}
+
 int main()
 {
     tinyRPC::Config::setConfigPath("../conf/config.xml");
     tinyRPC::Logger::setLogLevel(tinyRPC::Config::getInstance()->m_log_level);
-    test_connect();
+    test_tcp_client();
     return 0;
 }

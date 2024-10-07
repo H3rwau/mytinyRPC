@@ -2,11 +2,12 @@
 #include "tinyRPC/common/log.h"
 #include "tinyRPC/net/fd_event_group.h"
 #include "tinyRPC/net/tcp/tcp_connection.h"
+#include "tinyRPC/net/eventloop.h"
 
 namespace tinyRPC
 {
-    TcpConnection::TcpConnection(IOThread *io_thread, int fd, int buffer_size, NetAddr::s_ptr peer_addr)
-        : m_io_thread(io_thread), m_peer_addr(peer_addr), m_state(NotConnected), m_fd(fd)
+    TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size, NetAddr::s_ptr peer_addr)
+        : m_event_loop(event_loop), m_peer_addr(peer_addr), m_state(NotConnected), m_fd(fd)
     {
         m_in_buffer = std::make_shared<TcpBuffer>(buffer_size);
         m_out_buffer = std::make_shared<TcpBuffer>(buffer_size);
@@ -14,7 +15,7 @@ namespace tinyRPC
         m_fd_event = FdEventGroup::GetFdEventGroup()->getFdEvent(fd);
         m_fd_event->setNonBlock();
         m_fd_event->listen(FdEvent::IN_EVENT, std::bind(&TcpConnection::onRead, this));
-        io_thread->getEventLoop()->addEpollEvent(m_fd_event);
+        m_event_loop->addEpollEvent(m_fd_event);
         DEBUGLOG("TcpConnection listen fd [%d] IN_EVENT", m_fd);
     }
     TcpConnection::~TcpConnection()
@@ -92,11 +93,11 @@ namespace tinyRPC
             msg += tmp[i];
         }
         INFOLOG("success get request[%s] from client[%s]", msg.c_str(), m_peer_addr->toString().c_str());
-        DEBUGLOG("execute , msg = %s, msg.length() = %d", msg.c_str(),msg.length());
+        DEBUGLOG("execute , msg = %s, msg.length() = %d", msg.c_str(), msg.length());
         m_out_buffer->writeToBuffer(msg.c_str(), msg.length());
 
         m_fd_event->listen(FdEvent::OUT_EVENT, std::bind(&TcpConnection::onWrite, this));
-        m_io_thread->getEventLoop()->addEpollEvent(m_fd_event);
+        m_event_loop->addEpollEvent(m_fd_event);
     }
     void TcpConnection::onWrite()
     {
@@ -134,11 +135,11 @@ namespace tinyRPC
                 break;
             }
         }
-        //写事件是会一直触发的，所以写完就将写事件取消
+        // 写事件是会一直触发的，所以写完就将写事件取消
         if (is_write_all)
         {
             m_fd_event->cancel(FdEvent::OUT_EVENT);
-            m_io_thread->getEventLoop()->addEpollEvent(m_fd_event);
+            m_event_loop->addEpollEvent(m_fd_event);
         }
     }
     void TcpConnection::setState(const TcpState state)
@@ -158,7 +159,7 @@ namespace tinyRPC
         }
         m_fd_event->cancel(FdEvent::IN_EVENT);
         m_fd_event->cancel(FdEvent::OUT_EVENT);
-        m_io_thread->getEventLoop()->deleteEpollEvent(m_fd_event);
+        m_event_loop->deleteEpollEvent(m_fd_event);
         m_state = Closed;
     }
     void TcpConnection::shutdown()
@@ -173,5 +174,9 @@ namespace tinyRPC
         // 发送 FIN 报文， 触发了四次挥手的第一个阶段
         // 当 fd 发生可读事件，但是可读的数据为0，即 对端发送了 FIN
         ::shutdown(m_fd, SHUT_RDWR);
+    }
+    void TcpConnection::setConnectionType(TcpConnectionType type)
+    {
+        m_connection_type = type;
     }
 } // tinyRPC

@@ -29,34 +29,28 @@ namespace tinyRPC
 #define prefix(file, line, msg) \
     (std::string("[").append(file).append(":").append(line).append("] ").append(msg))
 
-#define DEBUGLOG(str, ...)                                                                                                    \
-    if (tinyRPC::Logger::m_log_level <= tinyRPC::Debug)                                                                       \
-    {                                                                                                                         \
-        tinyRPC::LogEvent *logp = new tinyRPC::LogEvent(tinyRPC::Loglevel::Debug);                                            \
-        tinyRPC::Logger::getInstance()->pushLog(prefix(__FILE__, std::to_string(__LINE__),                                    \
-                                                       logp->toString() + tinyRPC::formatString(str, ##__VA_ARGS__) + "\n")); \
-        tinyRPC::Logger::getInstance()->log();                                                                                \
-        delete logp;                                                                                                          \
+#define DEBUGLOG(str, ...)                                                                                                                                          \
+    if (tinyRPC::Logger::m_log_level <= tinyRPC::Debug)                                                                                                             \
+    {                                                                                                                                                               \
+        tinyRPC::Logger::getInstance()->pushLog(prefix(__FILE__, std::to_string(__LINE__),                                                                          \
+                                                       tinyRPC::LogEvent(tinyRPC::Loglevel::Debug).toString() + tinyRPC::formatString(str, ##__VA_ARGS__) + "\n")); \
+        tinyRPC::Logger::getInstance()->log();                                                                                                                      \
     }
 
-#define INFOLOG(str, ...)                                                                                                     \
-    if (tinyRPC::Logger::m_log_level <= tinyRPC::Info)                                                                        \
-    {                                                                                                                         \
-        tinyRPC::LogEvent *logp = new tinyRPC::LogEvent(tinyRPC::Loglevel::Info);                                             \
-        tinyRPC::Logger::getInstance()->pushLog(prefix(__FILE__, std::to_string(__LINE__),                                    \
-                                                       logp->toString() + tinyRPC::formatString(str, ##__VA_ARGS__) + "\n")); \
-        tinyRPC::Logger::getInstance()->log();                                                                                \
-        delete logp;                                                                                                          \
+#define INFOLOG(str, ...)                                                                                                                                          \
+    if (tinyRPC::Logger::m_log_level <= tinyRPC::Info)                                                                                                             \
+    {                                                                                                                                                              \
+        tinyRPC::Logger::getInstance()->pushLog(prefix(__FILE__, std::to_string(__LINE__),                                                                         \
+                                                       tinyRPC::LogEvent(tinyRPC::Loglevel::Info).toString() + tinyRPC::formatString(str, ##__VA_ARGS__) + "\n")); \
+        tinyRPC::Logger::getInstance()->log();                                                                                                                     \
     }
 
-#define ERRORLOG(str, ...)                                                                                                    \
-    if (tinyRPC::Logger::m_log_level <= tinyRPC::Error)                                                                       \
-    {                                                                                                                         \
-        tinyRPC::LogEvent *logp = new tinyRPC::LogEvent(tinyRPC::Loglevel::Error);                                            \
-        tinyRPC::Logger::getInstance()->pushLog(prefix(__FILE__, std::to_string(__LINE__),                                    \
-                                                       logp->toString() + tinyRPC::formatString(str, ##__VA_ARGS__) + "\n")); \
-        tinyRPC::Logger::getInstance()->log();                                                                                \
-        delete logp;                                                                                                          \
+#define ERRORLOG(str, ...)                                                                                                                                          \
+    if (tinyRPC::Logger::m_log_level <= tinyRPC::Error)                                                                                                             \
+    {                                                                                                                                                               \
+        tinyRPC::Logger::getInstance()->pushLog(prefix(__FILE__, std::to_string(__LINE__),                                                                          \
+                                                       tinyRPC::LogEvent(tinyRPC::Loglevel::Error).toString() + tinyRPC::formatString(str, ##__VA_ARGS__) + "\n")); \
+        tinyRPC::Logger::getInstance()->log();                                                                                                                      \
     }
 
     enum Loglevel

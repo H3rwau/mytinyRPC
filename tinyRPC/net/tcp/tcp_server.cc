@@ -49,7 +49,7 @@ namespace tinyRPC
 
         // TODO: 把 cleintfd 添加到任意 IO 线程里面
         IOThread *io_thread = m_io_thread_group->getIOThread();
-        TcpConnection::s_ptr connection = std::make_shared<TcpConnection>(io_thread, client_fd, 128, peer_addr);
+        TcpConnection::s_ptr connection = std::make_shared<TcpConnection>(io_thread->getEventLoop(), client_fd, 128, peer_addr);
         connection->setState(Connected);
         m_client.insert(connection);
         // m_io_thread_group->getIOThread()->getEventLoop()->addEpollEvent(client_fd_event);

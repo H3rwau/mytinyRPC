@@ -31,6 +31,7 @@ namespace tinyRPC
         void initTimer();
         static EventLoop *GetCurrentEventLoop();
         void addTask(std::function<void()> cb, bool is_wake_up = false);
+        bool isLooping();
 
     private:
         void dealWakeup();
@@ -47,6 +48,7 @@ namespace tinyRPC
         std::set<int> m_listen_fds;
 
         Timer *m_timer{nullptr};
+        bool m_is_looping{false};
 
         std::queue<std::function<void()>> m_pending_tasks;
         std::mutex m_mutex;

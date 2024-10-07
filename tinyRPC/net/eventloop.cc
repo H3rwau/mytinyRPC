@@ -69,6 +69,7 @@ namespace tinyRPC
     }
     void EventLoop::loop()
     {
+        m_is_looping = true;
         while (!m_stop_flag)
         {
             std::unique_lock<std::mutex> ulk(m_mutex);
@@ -225,7 +226,10 @@ namespace tinyRPC
             wakeup();
         }
     }
-
+    bool EventLoop::isLooping()
+    {
+        return m_is_looping;
+    }
     void EventLoop::dealWakeup()
     {
     }

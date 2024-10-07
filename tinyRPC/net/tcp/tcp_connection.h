@@ -15,13 +15,21 @@ namespace  tinyRPC{
         HalfClosing = 3,
         Closed = 4,
     };
+    enum TcpConnectionType
+    {
+        //作为服务端使用，表示和客户端的连接
+        TcpConnectionByServer = 1,
+        //作为客户端使用，表示和服务端的连接
+        TcpConnectionByClient = 2,
+
+    };
     class TcpConnection
     {
     public:
         using s_ptr = std::shared_ptr<TcpConnection>;
 
     public:
-        TcpConnection(IOThread *io_thread, int fd, int buffer_size, NetAddr::s_ptr peer_addr);
+        TcpConnection(EventLoop * event_loop, int fd, int buffer_size, NetAddr::s_ptr peer_addr);
         ~TcpConnection();
         void onRead();
         void excute();
@@ -31,9 +39,10 @@ namespace  tinyRPC{
         void clear();
         // 服务器主动关闭连接
         void shutdown();
+        void setConnectionType(TcpConnectionType type);
 
     private:
-        IOThread *m_io_thread{NULL}; // 代表持有该连接的 IO 线程
+        EventLoop *m_event_loop{NULL}; // 代表持有该连接的loop
         NetAddr::s_ptr m_local_addr;
         NetAddr::s_ptr m_peer_addr;
         TcpBuffer::s_ptr m_in_buffer;  // 接收缓冲区
@@ -41,6 +50,7 @@ namespace  tinyRPC{
         FdEvent *m_fd_event{NULL};
         TcpState m_state;
         int m_fd{0};
+        TcpConnectionType m_connection_type{TcpConnectionByServer};
     };
 }//tinyRPC
 
