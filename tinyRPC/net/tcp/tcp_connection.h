@@ -1,7 +1,6 @@
 #ifndef __TCP_CONNECTION__
 #define __TCP_CONNECTION__
 
-
 #include <memory>
 #include <map>
 #include <queue>
@@ -11,7 +10,8 @@
 #include "tinyRPC/net/coder/abstract_coder.h"
 #include "tinyRPC/net/rpc/rpc_dispatcher.h"
 
-namespace  tinyRPC{
+namespace tinyRPC
+{
     enum TcpState
     {
         NotConnected = 1,
@@ -21,9 +21,9 @@ namespace  tinyRPC{
     };
     enum TcpConnectionType
     {
-        //作为服务端使用，表示和客户端的连接
+        // 作为服务端使用，表示和客户端的连接
         TcpConnectionByServer = 1,
-        //作为客户端使用，表示和服务端的连接
+        // 作为客户端使用，表示和服务端的连接
         TcpConnectionByClient = 2,
 
     };
@@ -50,7 +50,7 @@ namespace  tinyRPC{
         // 启动监听可读事件
         void listenRead();
         void pushSendMessage(AbstractProtocol::s_ptr message, std::function<void(AbstractProtocol::s_ptr)> done);
-        void pushReadMessage(const std::string &req_id, std::function<void(AbstractProtocol::s_ptr)> done);
+        void pushReadMessage(const std::string &msg_id, std::function<void(AbstractProtocol::s_ptr)> done);
 
         NetAddr::s_ptr getLocalAddr();
         NetAddr::s_ptr getPeerAddr();
@@ -68,10 +68,9 @@ namespace  tinyRPC{
         TcpConnectionType m_connection_type{TcpConnectionByServer};
 
         std::vector<std::pair<AbstractProtocol::s_ptr, std::function<void(AbstractProtocol::s_ptr)>>> m_write_dones;
-        // key 为 req_id
+        // key 为 msg_id
         std::map<std::string, std::function<void(AbstractProtocol::s_ptr)>> m_read_dones;
-
     };
-}//tinyRPC
+} // tinyRPC
 
 #endif // __TCP_CONNECTION__

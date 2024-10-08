@@ -24,10 +24,15 @@ namespace tinyRPC
         {
             return m_read_callback;
         }
-        else
+        else if (event_type == TriggerEvent::OUT_EVENT)
         {
             return m_write_callback;
         }
+        else if (event_type == TriggerEvent::ERROR_EVENT)
+        {
+            return m_error_callback;
+        }
+        return nullptr;
     }
     void FdEvent::setNonBlock(){
         int flag = fcntl(m_fd, F_GETFL, 0);
@@ -47,7 +52,7 @@ namespace tinyRPC
             m_listen_events.events &= (~EPOLLOUT);
         }
     }
-    void FdEvent::listen(TriggerEvent event_type, std::function<void()> callback)
+    void FdEvent::listen(TriggerEvent event_type, std::function<void()> callback,  std::function<void()> error_callback /*= nullptr*/)
     {
         if (event_type == TriggerEvent::IN_EVENT)
         {
@@ -59,7 +64,14 @@ namespace tinyRPC
             m_listen_events.events |= EPOLLOUT;
             m_write_callback = callback;
         }
-
+        if (m_error_callback == nullptr)
+        {
+            m_error_callback = error_callback;
+        }
+        else
+        {
+            m_error_callback = nullptr;
+        }
         m_listen_events.data.ptr = this;
     }
 } // tinyRPC

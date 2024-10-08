@@ -65,21 +65,18 @@ void test_tcp_client()
     // 2. 将字节流入到 buffer 里面，然后全部发送
     client.connect([addr, &client]()
                    {
-        DEBUGLOG("conenct to [%s] success", addr->toString().c_str());
-        std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::make_shared<tinyRPC::TinyPBProtocol>();
-        message->m_req_id = "123456";
-        message->m_pb_data = "test client pb data";
-        //writeMessage中设置了可写事件监听
-        client.writeMessage(message, [](tinyRPC::AbstractProtocol::s_ptr msg_ptr) {
-            DEBUGLOG("send message success");
-        });
+                       DEBUGLOG("conenct to [%s] success", addr->toString().c_str());
+                       std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::make_shared<tinyRPC::TinyPBProtocol>();
+                       message->m_msg_id = "123456";
+                       message->m_pb_data = "test client pb data";
+                       // writeMessage中设置了可写事件监听
+                       client.writeMessage(message, [](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
+                                           { DEBUGLOG("send message success"); });
 
-        client.readMessage("123456", [](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
-                           {
+                       client.readMessage("123456", [](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
+                                          {
         std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::dynamic_pointer_cast<tinyRPC::TinyPBProtocol>(msg_ptr);
-            DEBUGLOG("req_id[%s], get response %s", message->m_req_id.c_str(), message->m_pb_data.c_str()); });
-        
-                             });
+            DEBUGLOG("msg_id[%s], get response %s", message->m_msg_id.c_str(), message->m_pb_data.c_str()); }); });
 }
 
 int main()

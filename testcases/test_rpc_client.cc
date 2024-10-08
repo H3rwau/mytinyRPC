@@ -21,6 +21,9 @@
 #include "tinyRPC/net/coder/tinypb_protocol.h"
 #include "tinyRPC/net/tcp/tcp_server.h"
 #include "tinyRPC/net/rpc/rpc_dispatcher.h"
+#include "tinyRPC/net/rpc/rpc_controller.h"
+#include "tinyRPC/net/rpc/rpc_channel.h"
+#include "tinyRPC/net/rpc/rpc_closure.h"
 
 #include "order.pb.h"
 
@@ -34,46 +37,73 @@ void test_tcp_client()
     // 2. 将字节流入到 buffer 里面，然后全部发送
     client.connect([addr, &client]()
                    {
-        DEBUGLOG("conenct to [%s] success", addr->toString().c_str());
-        std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::make_shared<tinyRPC::TinyPBProtocol>();
-        message->m_req_id = "123456";
-        message->m_pb_data = "test client pb data";
+                       DEBUGLOG("conenct to [%s] success", addr->toString().c_str());
+                       std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::make_shared<tinyRPC::TinyPBProtocol>();
+                       message->m_msg_id = "123456";
+                       message->m_pb_data = "test client pb data";
 
-        makeOrderRequest req;
-        req.set_price(100);
-        req.set_goods("iphone16 Pro Max");
+                       makeOrderRequest req;
+                       req.set_price(100);
+                       req.set_goods("iphone16 Pro Max");
 
-        if(!req.SerializeToString(&(message->m_pb_data))){
-            ERRORLOG("serilize error");
-            return;
-        }
-        message->m_method_name = "Order.makeOrder";
+                       if (!req.SerializeToString(&(message->m_pb_data)))
+                       {
+                           ERRORLOG("serilize error");
+                           return;
+                       }
+                       message->m_method_name = "Order.makeOrder";
 
-        //writeMessage中设置了可写事件监听
-        client.writeMessage(message, [req](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
-                            {
+                       // writeMessage中设置了可写事件监听
+                       client.writeMessage(message, [req](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
+                                           {
             DEBUGLOG("send message success, request[%s]", req.ShortDebugString().c_str());; });
 
-        client.readMessage("123456", [](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
-                           {
+                       client.readMessage("123456", [](tinyRPC::AbstractProtocol::s_ptr msg_ptr)
+                                          {
         std::shared_ptr<tinyRPC::TinyPBProtocol> message = std::dynamic_pointer_cast<tinyRPC::TinyPBProtocol>(msg_ptr);
-            DEBUGLOG("req_id[%s], get response %s", message->m_req_id.c_str(), message->m_pb_data.c_str());
+            DEBUGLOG("msg_id[%s], get response %s", message->m_msg_id.c_str(), message->m_pb_data.c_str());
             makeOrderResponse response;
             if (!response.ParseFromString(message->m_pb_data))
             {
                 ERRORLOG("deserialize error");
                 return;
             }
-            DEBUGLOG("get response success, response[%s]", response.ShortDebugString().c_str());
-            });
-        
-                             });
+            DEBUGLOG("get response success, response[%s]", response.ShortDebugString().c_str()); }); });
+}
+
+void test_rpc_channel()
+{
+    tinyRPC::IPV4NetAddr::s_ptr addr = std::make_shared<tinyRPC::IPV4NetAddr>("127.0.0.1", 12345);
+
+    std::shared_ptr<tinyRPC::RpcChannel> channel = std::make_shared<tinyRPC::RpcChannel>(addr);
+    // 建立请求
+    std::shared_ptr<makeOrderRequest> request = std::make_shared<makeOrderRequest>();
+
+    request->set_price(100);
+    request->set_goods("apple");
+    // 用来接收返回信息的response
+    std::shared_ptr<makeOrderResponse> response = std::make_shared<makeOrderResponse>();
+
+    std::shared_ptr<tinyRPC::RpcController> controller = std::make_shared<tinyRPC::RpcController>();
+    controller->SetMsgId("123456");
+
+    std::shared_ptr<tinyRPC::RpcClosure> closure = std::make_shared<tinyRPC::RpcClosure>([request, response, channel]() mutable
+                                                                                         {
+        INFOLOG("call rpc success, request[%s], response[%s]", request->ShortDebugString().c_str(), response->ShortDebugString().c_str());
+        INFOLOG("now exit eventloop");
+        channel->getTcpClient()->stop();
+        channel.reset(); });
+    channel->Init(controller, request, response, closure);
+    Order_Stub stub(channel.get());
+    stub.makeOrder(controller.get(), request.get(), response.get(), closure.get());
 }
 
 int main()
 {
     tinyRPC::Config::setConfigPath("../conf/config.xml");
     tinyRPC::Logger::setLogLevel(tinyRPC::Config::getInstance()->m_log_level);
-    test_tcp_client();
+    // test_tcp_client();
+    test_rpc_channel();
+    INFOLOG("test_rpc_channel end");
     return 0;
 }

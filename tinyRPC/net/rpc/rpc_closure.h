@@ -4,19 +4,23 @@
 #include <google/protobuf/stubs/callback.h>
 #include <functional>
 
-namespace  tinyRPC{
-    class RpcClosure:public google::protobuf::Closure 
+namespace tinyRPC
+{
+    class RpcClosure : public google::protobuf::Closure
     {
     public:
-        void Run() override{
-            if(m_cb){
+        RpcClosure(std::function<void()> cb) : m_cb(cb) {}
+        void Run() override
+        {
+            if (m_cb)
+            {
                 m_cb();
             }
         }
-    
+
     private:
         std::function<void()> m_cb{nullptr};
     };
-}//tinyRPC
+} // tinyRPC
 
 #endif // __RPC_CLOSURE__
