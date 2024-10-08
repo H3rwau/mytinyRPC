@@ -8,8 +8,8 @@
 
 namespace tinyRPC
 {
-    TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size, NetAddr::s_ptr peer_addr, TcpConnectionType type /* = TcpConnectionByServer*/)
-        : m_event_loop(event_loop), m_peer_addr(peer_addr), m_state(NotConnected), m_fd(fd), m_connection_type(type)
+    TcpConnection::TcpConnection(EventLoop *event_loop, int fd, int buffer_size, NetAddr::s_ptr peer_addr, NetAddr::s_ptr local_addr, TcpConnectionType type /* = TcpConnectionByServer*/)
+        : m_event_loop(event_loop), m_local_addr(local_addr), m_peer_addr(peer_addr), m_state(NotConnected), m_fd(fd), m_connection_type(type)
     {
         m_in_buffer = std::make_shared<TcpBuffer>(buffer_size);
         m_out_buffer = std::make_shared<TcpBuffer>(buffer_size);
@@ -18,7 +18,6 @@ namespace tinyRPC
 
         m_fd_event->setNonBlock();
 
-        
         m_coder = new TinyPBCoder();
         // 客户端不用在TcpConnection建立的时候就监听读
         if (m_connection_type == TcpConnectionByServer)
@@ -105,15 +104,17 @@ namespace tinyRPC
             std::vector<AbstractProtocol::s_ptr> reply_msg;
 
             m_coder->decode(result, m_in_buffer);
-            for (size_t i = 0; i < result.size();++i){
+            for (size_t i = 0; i < result.size(); ++i)
+            {
                 // 1. 针对每一个请求，调用 rpc 方法，获取响应 message
                 // 2. 将响应 message 放入到发送缓冲区，监听可写事件回包
                 INFOLOG("success get request[%s] from client[%s]", result[i]->m_req_id.c_str(), m_peer_addr->toString().c_str());
 
                 std::shared_ptr<TinyPBProtocol> message = std::make_shared<TinyPBProtocol>();
 
-                message->m_pb_data = "hello. this is tinyrpc test data from server";
-                message->m_req_id = result[i]->m_req_id;
+                // message->m_pb_data = "hello. this is tinyrpc test data from server";
+                // message->m_req_id = result[i]->m_req_id;
+                RpcDispatcher::GetRpcDispatcher()->dispatch(result[i], message, this);
                 reply_msg.emplace_back(message);
             }
 
@@ -262,5 +263,14 @@ namespace tinyRPC
     void TcpConnection::pushReadMessage(const std::string &req_id, std::function<void(AbstractProtocol::s_ptr)> done)
     {
         m_read_dones.insert(std::make_pair(req_id, done));
+    }
+
+    NetAddr::s_ptr TcpConnection::getLocalAddr()
+    {
+        return m_local_addr;
+    }
+    NetAddr::s_ptr TcpConnection::getPeerAddr()
+    {
+        return m_peer_addr;
     }
 } // tinyRPC

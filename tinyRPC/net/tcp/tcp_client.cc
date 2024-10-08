@@ -21,7 +21,7 @@ namespace tinyRPC
         m_fd_event = FdEventGroup::GetFdEventGroup()->getFdEvent(m_fd);
         m_fd_event->setNonBlock();
         // 建立连接
-        m_connection = std::make_shared<TcpConnection>(m_event_loop, m_fd, 128, peer_addr,TcpConnectionByClient);
+        m_connection = std::make_shared<TcpConnection>(m_event_loop, m_fd, 128, peer_addr,nullptr,TcpConnectionByClient);
         //m_connection->setConnectionType(TcpConnectionType::TcpConnectionByClient);
     }
     TcpClient::~TcpClient()
