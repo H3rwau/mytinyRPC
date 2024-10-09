@@ -81,8 +81,10 @@ void test_tcp_client()
 
 int main()
 {
-    tinyRPC::Config::setConfigPath("../conf/config.xml");
+    tinyRPC::Config::setConfigPath("../conf/config_client.xml");
     tinyRPC::Logger::setLogLevel(tinyRPC::Config::getInstance()->m_log_level);
+    tinyRPC::Logger::getInstance()->InitGlobalLogger(1);
+
     test_tcp_client();
     return 0;
 }

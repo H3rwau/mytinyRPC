@@ -17,8 +17,9 @@ void func(int x)
 
 int main()
 {
-    tinyRPC::Config::setConfigPath("../conf/config.xml");
+    tinyRPC::Config::setConfigPath("../conf/config_client.xml");
     tinyRPC::Logger::setLogLevel(tinyRPC::Config::getInstance()->m_log_level);
+    tinyRPC::Logger::getInstance()->InitGlobalLogger(1);
     std::thread mythread(func, 2);
     DEBUGLOG("test debug log %s %d", "1", 888);
     INFOLOG("test info log %s", "6");

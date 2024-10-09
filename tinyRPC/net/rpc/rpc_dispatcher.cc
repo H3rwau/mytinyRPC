@@ -5,6 +5,7 @@
 #include "tinyRPC/net/rpc/rpc_dispatcher.h"
 #include "tinyRPC/net/coder/tinypb_protocol.h"
 #include "tinyRPC/common/log.h"
+#include "tinyRPC/common/run_time.h"
 #include "tinyRPC/common/error_code.h"
 #include "tinyRPC/net/rpc/rpc_controller.h"
 #include "tinyRPC/net/tcp/net_addr.h"
@@ -84,6 +85,9 @@ namespace tinyRPC
         rpcController.SetPeerAddr(connection->getPeerAddr());
         rpcController.SetMsgId(req_protocol->m_msg_id);
 
+        RunTime::GetRunTime()->m_msgid = req_protocol->m_msg_id;
+        RunTime::GetRunTime()->m_method_name = method_name;
+        
         service->CallMethod(method, &rpcController, req_msg, rsp_msg, nullptr);
 
         if (!rsp_msg->SerializeToString(&(rsp_protocol->m_pb_data)))

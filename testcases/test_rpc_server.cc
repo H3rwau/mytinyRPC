@@ -32,9 +32,9 @@ public:
                    ::makeOrderResponse *response,
                    ::google::protobuf::Closure *done)
     {
-        DEBUGLOG("start sleep 5s");
+        APPDEBUGLOG("start sleep 5s");
         sleep(5);
-        DEBUGLOG("end sleep 5s");
+        APPDEBUGLOG("end sleep 5s");
         if (request->price() < 10)
         {
             response->set_ret_code(-1);
@@ -42,6 +42,7 @@ public:
             return;
         }
         response->set_order_id("20241008");
+        APPDEBUGLOG("call makeOrder success");
     }
 };
 
@@ -54,13 +55,29 @@ void test_tcp_server()
     tcp_server.start();
 }
 
-int main()
+int main(int argc,char ** argv)
 {
-    tinyRPC::Config::setConfigPath("../conf/config.xml");
+    if (argc != 2)
+    {
+        printf("Start test_rpc_server error, argc not 2 \n");
+        printf("Start like this: \n");
+        printf("./test_rpc_server ../conf/rocket.xml \n");
+        return 0;
+    }
+
+    tinyRPC::Config::setConfigPath(argv[1]);
     tinyRPC::Logger::setLogLevel(tinyRPC::Config::getInstance()->m_log_level);
+    // printf("111111\n");
+    tinyRPC::Logger::getInstance()->InitGlobalLogger(1);
+    // printf("22222\n");
 
     std::shared_ptr<OrderImpl> service = std::make_shared<OrderImpl>();
     tinyRPC::RpcDispatcher::GetRpcDispatcher()->registerService(service);
-    test_tcp_server();
+
+    //test_tcp_server();
+    tinyRPC::IPV4NetAddr::s_ptr addr = std::make_shared<tinyRPC::IPV4NetAddr>("127.0.0.1", tinyRPC::Config::getInstance()->m_port);
+    DEBUGLOG("create addr %s", addr->toString().c_str());
+    tinyRPC::TcpServer tcp_server(addr);
+    tcp_server.start();
     return 0;
 }

@@ -137,7 +137,7 @@ int main()
 {
     tinyRPC::Config::setConfigPath("../conf/config.xml");
     tinyRPC::Logger::setLogLevel(tinyRPC::Config::getInstance()->m_log_level);
-
+    tinyRPC::Logger::getInstance()->InitGlobalLogger(1);
     testIOThread();
     // testEventLoop();
     return 0;

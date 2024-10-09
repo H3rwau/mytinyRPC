@@ -89,7 +89,7 @@ void test_rpc_channel()
     // std::shared_ptr<tinyRPC::RpcController> controller = std::make_shared<tinyRPC::RpcController>();
     NEWRPCCONTROLLER(controller);
     controller->SetMsgId("123456");
-    controller->SetTimeout(3000);
+    controller->SetTimeout(10000);
 
     std::shared_ptr<tinyRPC::RpcClosure> closure = std::make_shared<tinyRPC::RpcClosure>([request, response, channel, controller]() mutable
                                                                                          {
@@ -106,7 +106,7 @@ void test_rpc_channel()
             controller->GetErrorInfo().c_str());
         }
         INFOLOG("now exit eventloop");
-        channel->getTcpClient()->stop();
+        // channel->getTcpClient()->stop();
         channel.reset(); });
 
     // channel->Init(controller, request, response, closure);
@@ -117,8 +117,9 @@ void test_rpc_channel()
 
 int main()
 {
-    tinyRPC::Config::setConfigPath("../conf/config.xml");
+    tinyRPC::Config::setConfigPath(nullptr);
     tinyRPC::Logger::setLogLevel(tinyRPC::Config::getInstance()->m_log_level);
+    tinyRPC::Logger::getInstance()->InitGlobalLogger();
     // test_tcp_client();
     test_rpc_channel();
     INFOLOG("test_rpc_channel end");
