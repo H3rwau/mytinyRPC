@@ -6,6 +6,7 @@
 #include "tinyRPC/net/eventloop.h"
 #include "tinyRPC/net/tcp/tcp_connection.h"
 #include "tinyRPC/net/coder/abstract_protocol.h"
+#include "tinyRPC/net/timer_event.h"
 
 namespace tinyRPC
 {
@@ -36,6 +37,7 @@ namespace tinyRPC
         NetAddr::s_ptr getLocalAddr();
 
         void initLocalAddr();
+        void addTimerEvent(TimerEvent::s_ptr timer_event);
 
     private:
         NetAddr::s_ptr m_peer_addr;

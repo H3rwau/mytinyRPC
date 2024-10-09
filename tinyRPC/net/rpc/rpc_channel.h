@@ -4,9 +4,27 @@
 #include <google/protobuf/service.h>
 #include "tinyRPC/net/tcp/net_addr.h"
 #include "tinyRPC/net/tcp/tcp_client.h"
+#include "tinyRPC/net/timer_event.h"
 
 namespace tinyRPC
 {
+
+    #define NEWMESSAGE(type, var_name)                                                                         \
+    std::shared_ptr<type> var_name = std::make_shared<type>();
+
+    #define NEWRPCCONTROLLER(var_name)                                                                         \
+        std::shared_ptr<tinyRPC::RpcController> var_name = std::make_shared<tinyRPC::RpcController>();
+
+    #define NEWRPCCHANNEL(addr, var_name)                                                                      \
+        std::shared_ptr<tinyRPC::RpcChannel>                                                                    \
+            var_name = std::make_shared<tinyRPC::RpcChannel>(std::make_shared<tinyRPC::IPV4NetAddr>(addr));
+
+    #define CALLRPRC(method_name, controller, request, response, closure)                                \
+    {                                                                                                          \
+        channel->Init(controller, request, response, closure);                                                 \
+        Order_Stub(channel.get()).method_name(controller.get(), request.get(), response.get(), closure.get()); \
+    }
+
     class RpcChannel : public google::protobuf::RpcChannel,
                        public std::enable_shared_from_this<RpcChannel>
     {
@@ -27,6 +45,7 @@ namespace tinyRPC
         google::protobuf::Message *getResponse();
         google::protobuf::Closure *getClosure();
         TcpClient *getTcpClient();
+        TimerEvent::s_ptr getTimerEvent();
 
     private:
         NetAddr::s_ptr m_peer_addr{nullptr};
@@ -38,6 +57,7 @@ namespace tinyRPC
         closure_s_ptr m_closure{nullptr};
         bool m_is_init{false};
         TcpClient::s_ptr m_client{nullptr};
+        TimerEvent::s_ptr m_timer_event{nullptr};
     };
 } // tinyRPC
 

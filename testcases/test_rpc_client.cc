@@ -73,29 +73,46 @@ void test_tcp_client()
 
 void test_rpc_channel()
 {
-    tinyRPC::IPV4NetAddr::s_ptr addr = std::make_shared<tinyRPC::IPV4NetAddr>("127.0.0.1", 12345);
+    // tinyRPC::IPV4NetAddr::s_ptr addr = std::make_shared<tinyRPC::IPV4NetAddr>("127.0.0.1", 12345);
 
-    std::shared_ptr<tinyRPC::RpcChannel> channel = std::make_shared<tinyRPC::RpcChannel>(addr);
-    // 建立请求
-    std::shared_ptr<makeOrderRequest> request = std::make_shared<makeOrderRequest>();
-
+    // std::shared_ptr<tinyRPC::RpcChannel> channel = std::make_shared<tinyRPC::RpcChannel>(addr);
+    //  建立请求
+    // std::shared_ptr<makeOrderRequest> request = std::make_shared<makeOrderRequest>();
+    NEWRPCCHANNEL("127.0.0.1:12345", channel);
+    NEWMESSAGE(makeOrderRequest, request);
+    NEWMESSAGE(makeOrderResponse, response);
     request->set_price(100);
     request->set_goods("apple");
     // 用来接收返回信息的response
-    std::shared_ptr<makeOrderResponse> response = std::make_shared<makeOrderResponse>();
+    // std::shared_ptr<makeOrderResponse> response = std::make_shared<makeOrderResponse>();
 
-    std::shared_ptr<tinyRPC::RpcController> controller = std::make_shared<tinyRPC::RpcController>();
+    // std::shared_ptr<tinyRPC::RpcController> controller = std::make_shared<tinyRPC::RpcController>();
+    NEWRPCCONTROLLER(controller);
     controller->SetMsgId("123456");
+    controller->SetTimeout(3000);
 
-    std::shared_ptr<tinyRPC::RpcClosure> closure = std::make_shared<tinyRPC::RpcClosure>([request, response, channel]() mutable
+    std::shared_ptr<tinyRPC::RpcClosure> closure = std::make_shared<tinyRPC::RpcClosure>([request, response, channel, controller]() mutable
                                                                                          {
-        INFOLOG("call rpc success, request[%s], response[%s]", request->ShortDebugString().c_str(), response->ShortDebugString().c_str());
+        if (controller->GetErrorCode() == 0) {
+                INFOLOG("call rpc success, request[%s], response[%s]", request->ShortDebugString().c_str(), response->ShortDebugString().c_str());
+                // 执行业务逻辑
+                if (response->order_id() == "xxx") {
+                // xx
+                }
+        } else {
+            ERRORLOG("call rpc failed, request[%s], error code[%d], error info[%s]", 
+            request->ShortDebugString().c_str(), 
+            controller->GetErrorCode(), 
+            controller->GetErrorInfo().c_str());
+        }
         INFOLOG("now exit eventloop");
         channel->getTcpClient()->stop();
         channel.reset(); });
-    channel->Init(controller, request, response, closure);
-    Order_Stub stub(channel.get());
-    stub.makeOrder(controller.get(), request.get(), response.get(), closure.get());
+
+    // channel->Init(controller, request, response, closure);
+    // Order_Stub stub(channel.get());
+    // stub.makeOrder(controller.get(), request.get(), response.get(), closure.get());
+    CALLRPRC(makeOrder, controller, request, response, closure);
 }
 
 int main()

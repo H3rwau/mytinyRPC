@@ -177,5 +177,9 @@ namespace tinyRPC
         }
         m_local_addr = std::make_shared<IPV4NetAddr>(local_addr);
     }
+    void TcpClient::addTimerEvent(TimerEvent::s_ptr timer_event)
+    {
+        m_event_loop->addTimerEvent(timer_event);
+    }
 
 } // tinyRPC
