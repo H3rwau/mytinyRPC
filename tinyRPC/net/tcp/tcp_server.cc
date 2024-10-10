@@ -1,6 +1,7 @@
 #include "tinyRPC/net/tcp/tcp_server.h"
 #include "tinyRPC/net/eventloop.h"
 #include "tinyRPC/common/log.h"
+#include "tinyRPC/common/config.h"
 
 namespace tinyRPC
 {
@@ -29,7 +30,7 @@ namespace tinyRPC
         m_acceptor = std::make_shared<TcpAcceptor>(m_local_addr);
 
         m_main_event_loop = EventLoop::GetCurrentEventLoop();
-        m_io_thread_group = new IOThreadGroup(2);
+        m_io_thread_group = new IOThreadGroup(tinyRPC::Config::getInstance()->m_io_threads);
 
         // 将socket套接字建立事件对象
         m_listen_fd_event = new FdEvent(m_acceptor->getListenFd());

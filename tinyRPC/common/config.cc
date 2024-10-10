@@ -56,7 +56,7 @@ namespace tinyRPC
         m_log_max_file_size = std::atoi(log_max_file_size_str.c_str());
         m_log_sync_inteval = std::atoi(log_sync_interval_str.c_str());
 
-        printf("LOG -- CONFIG LEVEL[%s], FILE_NAME[%s],FILE_PATH[%s] MAX_FILE_SIZE[%d B], SYNC_INTEVAL[%d ms]\n",
+        printf("LOG -- CONFIG LEVEL[%s], FILE_NAME[%s],FILE_PATH[%s] MAX_FILE_SIZE[%d B], SYNC_INTERVAL[%d ms]\n",
                m_log_level.c_str(), m_log_file_name.c_str(), m_log_file_path.c_str(), m_log_max_file_size, m_log_sync_inteval);
 
         READ_STR_FROM_XML_NODE(port, server);

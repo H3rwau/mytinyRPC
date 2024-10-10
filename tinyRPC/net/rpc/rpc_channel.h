@@ -9,20 +9,21 @@
 namespace tinyRPC
 {
 
-    #define NEWMESSAGE(type, var_name)                                                                         \
+    #define NEWMESSAGE(type, var_name)                                                                        \
     std::shared_ptr<type> var_name = std::make_shared<type>();
 
-    #define NEWRPCCONTROLLER(var_name)                                                                         \
+    #define NEWRPCCONTROLLER(var_name)                                                                        \
         std::shared_ptr<tinyRPC::RpcController> var_name = std::make_shared<tinyRPC::RpcController>();
 
-    #define NEWRPCCHANNEL(addr, var_name)                                                                      \
-        std::shared_ptr<tinyRPC::RpcChannel>                                                                    \
+    #define NEWRPCCHANNEL(addr, var_name)                                                                     \
+        std::shared_ptr<tinyRPC::RpcChannel>                                                                  \
             var_name = std::make_shared<tinyRPC::RpcChannel>(std::make_shared<tinyRPC::IPV4NetAddr>(addr));
 
-    #define CALLRPRC(method_name, controller, request, response, closure)                                \
-    {                                                                                                          \
-        channel->Init(controller, request, response, closure);                                                 \
-        Order_Stub(channel.get()).method_name(controller.get(), request.get(), response.get(), closure.get()); \
+    #define CALLRPRC(addr, stub_name, method_name, controller, request, response, closure)                    \
+    {                                                                                                         \
+        NEWRPCCHANNEL(addr, channel);                                                                         \
+        channel->Init(controller, request, response, closure);                                                \
+        stub_name(channel.get()).method_name(controller.get(), request.get(), response.get(), closure.get()); \
     }
 
     class RpcChannel : public google::protobuf::RpcChannel,

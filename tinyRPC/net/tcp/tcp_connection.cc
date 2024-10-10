@@ -92,7 +92,7 @@ namespace tinyRPC
         {
             ERRORLOG("not read all data");
         }
-        // TODO: 简单的 echo, 后面补充 RPC 协议解析
+        // RPC 协议解析
         excute();
     }
     void TcpConnection::excute()

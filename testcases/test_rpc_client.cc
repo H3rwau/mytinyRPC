@@ -78,7 +78,7 @@ void test_rpc_channel()
     // std::shared_ptr<tinyRPC::RpcChannel> channel = std::make_shared<tinyRPC::RpcChannel>(addr);
     //  建立请求
     // std::shared_ptr<makeOrderRequest> request = std::make_shared<makeOrderRequest>();
-    NEWRPCCHANNEL("127.0.0.1:12345", channel);
+    NEWRPCCHANNEL("127.0.0.1:12345",channel)
     NEWMESSAGE(makeOrderRequest, request);
     NEWMESSAGE(makeOrderResponse, response);
     request->set_price(100);
@@ -112,7 +112,7 @@ void test_rpc_channel()
     // channel->Init(controller, request, response, closure);
     // Order_Stub stub(channel.get());
     // stub.makeOrder(controller.get(), request.get(), response.get(), closure.get());
-    CALLRPRC(makeOrder, controller, request, response, closure);
+    CALLRPRC("127.0.0.1:12345", Order_Stub, makeOrder, controller, request, response, closure);
 }
 
 int main()
